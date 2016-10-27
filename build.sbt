@@ -1,6 +1,6 @@
 name := "googlecloud-shapeless"
-
-version := "1.0"
+organization := "com.emarsys"
+version := "0.0.1"
 
 scalaVersion := "2.11.8"
 
@@ -25,3 +25,5 @@ libraryDependencies ++= {
 }
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+
+publishTo := Some(Resolver.file("releases", new File("releases")))
