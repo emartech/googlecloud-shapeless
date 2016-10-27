@@ -12,7 +12,30 @@ class BigQueryFormatTest extends WordSpec with Matchers {
 
   val testTime = new DateTime(2016, 11, 12, 13, 14, 50, DateTimeZone.UTC)
 
-  import testTypes._
+
+  object LocalTestTypes {
+
+    sealed trait TestTrait
+
+    case class TestString(name: String) extends TestTrait
+
+    case class TestInt(value: Int) extends TestTrait
+
+    case class TestDouble(value: Double) extends TestTrait
+
+    case class TestFloat(value: Float) extends TestTrait
+
+    case class TestBoolean(condition: Boolean) extends TestTrait
+
+    case class TestJodaDateTime(dateTime: DateTime) extends TestTrait
+
+    case class TestDateTime(date: DateTime) extends TestTrait
+
+    case class TestMultipleTypes(name: String, condition: Boolean, dateTime: DateTime) extends TestTrait
+
+  }
+  
+  import LocalTestTypes._
 
   "format" should {
     "round trip" in {

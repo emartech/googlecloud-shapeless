@@ -31,5 +31,4 @@ object testTypes {
 
   case class TestMultipleTypes(name: String, condition: Boolean, dateTime: DateTime) extends TestTrait
 
-
 }
