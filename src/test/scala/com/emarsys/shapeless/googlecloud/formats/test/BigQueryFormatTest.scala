@@ -34,7 +34,7 @@ class BigQueryFormatTest extends WordSpec with Matchers {
     case class TestMultipleTypes(name: String, condition: Boolean, dateTime: DateTime) extends TestTrait
 
   }
-  
+
   import LocalTestTypes._
 
   "format" should {

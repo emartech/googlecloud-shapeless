@@ -3,7 +3,7 @@ package com.emarsys.shapeless.googlecloud.formats.test
 import com.emarsys.shapeless.googlecloud.formats.DataStore._
 import com.emarsys.shapeless.googlecloud.formats.syntax._
 import com.google.datastore.v1.Entity
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest._
 import shapeless._
 
@@ -45,12 +45,14 @@ class DataStoreFormatTest extends FlatSpec with Matchers {
     falseEntity.getProperties.get("condition").getBooleanValue shouldBe false
   }
 
-//  "Entity" should "be built from case class with joda date value" in {
-//    val date: DateTime = org.joda.time.DateTime.now
-//    val event = TestDateTime(date)
-//    val entity: Entity = event.toEntity("test", "test")
-//    entity.getProperties.get("date").getTimestampValue.toDateTime shouldBe date
-//  }
+  "Entity" should "be built from case class with joda date value" in {
+    val date: DateTime = new DateTime(2016, 11, 12, 13, 14, 50, DateTimeZone.UTC)
+    val event = TestDateTime(date)
+    val entity: Entity = event.toEntity("test", "test")
+    val timestampPb = entity.getProperties.get("date").getTimestampValue
+    val milliSeconds: Long = timestampPb.getSeconds * 1000
+    entity.getProperties.get("date").parseAs[DateTime] shouldBe date
+  }
 
 
   "Entity" should "be parsable to HNil" in {

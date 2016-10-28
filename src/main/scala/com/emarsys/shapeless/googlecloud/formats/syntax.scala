@@ -39,13 +39,7 @@ object syntax {
     def parseTo[T](implicit dataEntityParsable: DataStoreFormat[T]): T = dataEntityParsable.parseEntity(entity)
   }
 
-  implicit class RichTimeStamp(val timestamp: Timestamp) {
-    def toDateTime : DateTime = DateTime.now
-  }
-
-
   implicit class RichValue(val value: Value) extends AnyVal {
     def parseAs[T](implicit valueFormat: EntityValue[T]) : T = valueFormat.fromValue(value)
   }
-
 }

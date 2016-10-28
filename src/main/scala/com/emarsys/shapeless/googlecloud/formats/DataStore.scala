@@ -29,18 +29,19 @@ object DataStore {
     override def toValue(t: Boolean): Value = makeValue(t).build()
     override def fromValue(v: Value): Boolean = v.getBooleanValue
   }
-//
-//  implicit val DatePrimitive = new EntityValue[DateTime] {
-//    def toValue(dateTime: DateTime) = {
-//      makeValue(dateTime.toDateTime(DateTimeZone.UTC).getMillis / 1000).build()
-//    }
-//
-//    def fromValue(v: Value) = {
-//      val d = v.toString.toDouble
-//      val l = (d * 1000).toLong
-//      new org.joda.time.DateTime(l, DateTimeZone.UTC)
-//    }
-//  }
+
+
+ implicit val DatePrimitive = new EntityValue[DateTime] {
+   def toValue(dateTime: DateTime) = {
+     makeValue(dateTime.toDateTime(DateTimeZone.UTC).getMillis * 10).build()
+   }
+
+   def fromValue(v: Value) = {
+     val timestampPb = v.getIntegerValue
+     val milliSeconds: Long = timestampPb / 10
+     new org.joda.time.DateTime(milliSeconds, DateTimeZone.UTC)
+   }
+ }
 
 
   implicit val hNilStorable: DataStoreFormat[HNil] = new DataStoreFormat[HNil] {
