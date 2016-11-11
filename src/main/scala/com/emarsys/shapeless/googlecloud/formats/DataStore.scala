@@ -1,3 +1,4 @@
+
 package com.emarsys.shapeless.googlecloud.formats
 
 import java.util.UUID
@@ -90,27 +91,34 @@ object DataStore {
     }
   }
 
-  private def createKey(namespace: String, kind: String) = {
-    def makeAncestorKey(namespace: String, kind: String) = {
-      val keyBuilder = makeKey(kind, "root")
+  private def makeAncestorKey(namespace: String, kind: String) = {
+      val keyBuilder = makeKey(kind)
       if (namespace != null) {
         keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
       }
       keyBuilder.build()
     }
 
+  private def createKeyWithParent(namespace: String, kind: String) = {
     val ancestorKey = makeAncestorKey(namespace, kind)
     val keyBuilder = makeKey(ancestorKey, kind, UUID.randomUUID().toString)
     keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
     keyBuilder
   }
 
+  private def createKey(namespace: String, kind: String) = {
+   val keyBuilder = makeKey(kind, UUID.randomUUID().toString)
+      if (namespace != null) {
+        keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
+      }
+      keyBuilder.build()
+  }
+
   private def buildEntity(namespace: String, kind: String, label: String, value: Value): Entity = {
     val entityBuilder = Entity.newBuilder()
-    entityBuilder.setKey(createKey(namespace, kind).build())
+    entityBuilder.setKey(createKey(namespace, kind))
     entityBuilder.getMutableProperties.put(label, value)
     val headEntity: Entity = entityBuilder.build()
     headEntity
   }
-
 }
