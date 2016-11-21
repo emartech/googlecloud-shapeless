@@ -10,6 +10,7 @@ import shapeless._
 class DataStoreFormatTest extends FlatSpec with Matchers {
   case class TestBoolean(condition: Boolean)
   case class TestDateTime(date: DateTime)
+  case class TestOptional(optInt: Option[Int], optString: Option[String], optDate: Option[DateTime])
 
   "Entity" should "be built from HNil" in {
     val event: HNil = HNil
@@ -71,5 +72,11 @@ class DataStoreFormatTest extends FlatSpec with Matchers {
     val event = SimpleStringyDouble("simple", 1, 0.456789)
     val entity = event.toEntity("test", "test")
     entity.parseTo[SimpleStringyDouble] shouldBe event
+  }
+
+  "case class with optional values" should "roundtrip" in {
+    val event = TestOptional(None, Some("some"), None)
+    val entity = event.toEntity("test", "test")
+    entity.parseTo[TestOptional] shouldBe event
   }
 }

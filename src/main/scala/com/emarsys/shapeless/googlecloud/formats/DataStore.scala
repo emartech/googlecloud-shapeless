@@ -12,7 +12,7 @@ import shapeless.labelled._
 object DataStore {
 
   implicit val intEntityValue = new EntityValue[Int] {
-    override def toValue(i: Int): Value = makeValue(i).build()
+    override def toValue(i: Int): Value = makeValue(i.toLong).build()
     override def fromValue(v: Value): Int = v.getIntegerValue.toInt
   }
 
@@ -31,7 +31,6 @@ object DataStore {
     override def fromValue(v: Value): Boolean = v.getBooleanValue
   }
 
-
  implicit val DatePrimitive = new EntityValue[DateTime] {
    def toValue(dateTime: DateTime) = {
      makeValue(dateTime.toDateTime(DateTimeZone.UTC).getMillis * 10).build()
@@ -43,6 +42,20 @@ object DataStore {
      new org.joda.time.DateTime(milliSeconds, DateTimeZone.UTC)
    }
  }
+
+  implicit def optionEntityValue[T](implicit innerValue: EntityValue[T]) = new EntityValue[Option[T]] {
+      override def toValue(ot: Option[T]) = {
+        ot match {
+          case Some(x) => innerValue.toValue(x)
+          case None    => null 
+        }
+      }
+
+    override def fromValue(v: Value) = {
+      if(v == null) None
+      else Option(innerValue.fromValue(v))
+      }
+  }
 
 
   implicit val hNilStorable: DataStoreFormat[HNil] = new DataStoreFormat[HNil] {
@@ -63,7 +76,7 @@ object DataStore {
         val headValue = storeHead.value.toValue(t.head)
         val headEntity: Entity = buildEntity(namespace, kind, headLabel, headValue)
         val completeEntity: Entity = rest.toBuilder.mergeFrom(headEntity).build()
-        completeEntity
+        completeEntity.toBuilder().setKey(createKey(namespace, kind)).build()
       }
 
       override def parseEntity(e: Entity): FieldType[Key, V] :: Tail = {
