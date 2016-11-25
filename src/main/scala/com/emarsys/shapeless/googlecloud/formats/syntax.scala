@@ -10,8 +10,8 @@ object syntax {
   import formats._
 
   implicit class DataStoreEnricher[T](val t: T) {
-    def toEntity(namespace: String, kind: String)(implicit storable: DataStoreFormat[T]): Entity =
-      storable.toEntity(namespace: String, kind: String)(t)
+    def toEntity(namespace: String, kind: String, keyFields: List[String])(implicit storable: DataStoreFormat[T]): Entity =
+      storable.toEntity(namespace, kind, keyFields)(t)
   }
 
   implicit class RichBigResult[R](val e: FormatResult[R]) extends AnyVal {

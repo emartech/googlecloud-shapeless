@@ -59,7 +59,7 @@ object DataStore {
 
 
   implicit val hNilStorable: DataStoreFormat[HNil] = new DataStoreFormat[HNil] {
-    override def toEntity(namespace: String, kind: String)(t: HNil): Entity =
+    override def toEntity(namespace: String, kind: String, keyFields: List[String])(t: HNil): Entity =
       Entity.newBuilder().build()
 
     override def parseEntity(e: Entity): HNil = HNil
@@ -70,13 +70,22 @@ object DataStore {
     storeHead: Lazy[EntityValue[V]],
     storeRemaining: Lazy[DataStoreFormat[Tail]]): DataStoreFormat[FieldType[Key, V] :: Tail] =
     new DataStoreFormat[FieldType[Key, V] :: Tail] {
-      override def toEntity(namespace: String, kind: String)(t: FieldType[Key, V] :: Tail): Entity = {
-        val rest = storeRemaining.value.toEntity(namespace: String, kind: String)(t.tail)
+
+      override def toEntity(namespace: String, kind: String, keyFields: List[String])(t: FieldType[Key, V] :: Tail): Entity = {
+        val rest = storeRemaining.value.toEntity(namespace, kind, keyFields)(t.tail)
         val headLabel = witness.value.name
         val headValue = storeHead.value.toValue(t.head)
         val headEntity: Entity = buildEntity(namespace, kind, headLabel, headValue)
         val completeEntity: Entity = rest.toBuilder.mergeFrom(headEntity).build()
-        completeEntity.toBuilder().setKey(createKey(namespace, kind)).build()
+
+        if (keyFields.isEmpty) {
+          completeEntity.toBuilder.setKey(createKey(namespace, kind, None)).build()
+        } else if (keyFields.contains(headLabel)) {
+          val previousKey = if (completeEntity.getKey.getPathCount > 0) "_" + completeEntity.getKey.getPath(0).getName else ""
+          completeEntity.toBuilder.setKey(createKey(namespace, kind, Some(t.head.toString + previousKey))).build()
+        } else {
+          completeEntity
+        }
       }
 
       override def parseEntity(e: Entity): FieldType[Key, V] :: Tail = {
@@ -95,8 +104,8 @@ object DataStore {
     tpe: Typeable[T]
   ): DataStoreFormat[T] = new DataStoreFormat[T] {
 
-    override def toEntity(namespace: String, kind: String)(t: T) = {
-      sg.value.toEntity(namespace: String, kind: String)(gen.to(t))
+    override def toEntity(namespace: String, kind: String, keyFields: List[String])(t: T) = {
+      sg.value.toEntity(namespace, kind, keyFields)(gen.to(t))
     }
 
     override def parseEntity(e: Entity): T = {
@@ -104,32 +113,16 @@ object DataStore {
     }
   }
 
-  private def makeAncestorKey(namespace: String, kind: String) = {
-      val keyBuilder = makeKey(kind)
-      if (namespace != null) {
-        keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
-      }
-      keyBuilder.build()
+  private def createKey(namespace: String, kind: String, key: Option[String] = None) = {
+    val keyBuilder = makeKey(kind, key.getOrElse(UUID.randomUUID().toString))
+    if (namespace != null) {
+      keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
     }
-
-  private def createKeyWithParent(namespace: String, kind: String) = {
-    val ancestorKey = makeAncestorKey(namespace, kind)
-    val keyBuilder = makeKey(ancestorKey, kind, UUID.randomUUID().toString)
-    keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
-    keyBuilder
-  }
-
-  private def createKey(namespace: String, kind: String) = {
-   val keyBuilder = makeKey(kind, UUID.randomUUID().toString)
-      if (namespace != null) {
-        keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
-      }
-      keyBuilder.build()
+    keyBuilder.build()
   }
 
   private def buildEntity(namespace: String, kind: String, label: String, value: Value): Entity = {
     val entityBuilder = Entity.newBuilder()
-    entityBuilder.setKey(createKey(namespace, kind))
     entityBuilder.getMutableProperties.put(label, value)
     val headEntity: Entity = entityBuilder.build()
     headEntity

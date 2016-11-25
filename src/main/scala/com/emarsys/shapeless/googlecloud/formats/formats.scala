@@ -18,7 +18,7 @@ package object formats {
   }
 
   trait DataStoreFormat[T] {
-    def toEntity(namespace: String, kind: String)(t: T): Entity
+    def toEntity(namespace: String, kind: String, keyFields: List[String])(t: T): Entity
     def parseEntity(e: Entity) : T
   }
 

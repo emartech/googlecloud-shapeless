@@ -7,11 +7,8 @@ case class Person(name: String, age: Int)
 case class MaybePerson(name: String, age: Option[Int])
 
 case class Embedded(p: MaybePerson, level: Int)
-case class Simple(i: Int)
-case class SimpleStringy(s: String, i: Int)
-case class SimpleStringyDouble(s: String, i: Int, d: Double)
 
-object testTypes {
+object TestTypes {
 
   sealed trait TestTrait
 
@@ -29,6 +26,12 @@ object testTypes {
 
   case class TestDateTime(date: DateTime) extends TestTrait
 
+  case class TestStringInt(s: String, i: Int) extends TestTrait
+
+  case class TestStringIntDouble(s: String, i: Int, d: Double) extends TestTrait
+
   case class TestMultipleTypes(name: String, condition: Boolean, dateTime: DateTime) extends TestTrait
+
+  case class TestOptional(optInt: Option[Int], optString: Option[String], optDate: Option[DateTime]) extends TestTrait
 
 }
