@@ -9,6 +9,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import shapeless.{::, HList, HNil, LabelledGeneric, Lazy, Typeable, Witness}
 import shapeless.labelled._
 
+import scala.util.Try
+
 object DataStore {
 
   implicit val intEntityValue = new EntityValue[Int] {
@@ -75,17 +77,11 @@ object DataStore {
         val rest = storeRemaining.value.toEntity(namespace, kind, keyFields)(t.tail)
         val headLabel = witness.value.name
         val headValue = storeHead.value.toValue(t.head)
-        val headEntity: Entity = buildEntity(namespace, kind, headLabel, headValue)
-        val completeEntity: Entity = rest.toBuilder.mergeFrom(headEntity).build()
 
-        if (keyFields.isEmpty) {
-          completeEntity.toBuilder.setKey(createKey(namespace, kind, None)).build()
-        } else if (keyFields.contains(headLabel)) {
-          val previousKey = if (completeEntity.getKey.getPathCount > 0) "_" + completeEntity.getKey.getPath(0).getName else ""
-          completeEntity.toBuilder.setKey(createKey(namespace, kind, Some(t.head.toString + previousKey))).build()
-        } else {
-          completeEntity
-        }
+        (buildEntity(headLabel) andThen
+          mergeEntity(rest) andThen
+          addOrAppendKeyToEntity(EntityOptions(namespace, kind, keyFields), headLabel, t.head)
+        ) apply headValue
       }
 
       override def parseEntity(e: Entity): FieldType[Key, V] :: Tail = {
@@ -113,18 +109,36 @@ object DataStore {
     }
   }
 
-  private def createKey(namespace: String, kind: String, key: Option[String] = None) = {
-    val keyBuilder = makeKey(kind, key.getOrElse(UUID.randomUUID().toString))
-    if (namespace != null) {
-      keyBuilder.getPartitionIdBuilder.setNamespaceId(namespace)
-    }
-    keyBuilder.build()
-  }
+  case class EntityOptions(namespace: String, kind: String, keyFields: List[String])
 
-  private def buildEntity(namespace: String, kind: String, label: String, value: Value): Entity = {
+  private def buildEntity(label: String) = (value: Value) => {
     val entityBuilder = Entity.newBuilder()
     entityBuilder.getMutableProperties.put(label, value)
-    val headEntity: Entity = entityBuilder.build()
-    headEntity
+    entityBuilder.build()
+  }
+
+  private def mergeEntity(sourceEntity: Entity) = (entity: Entity) =>  sourceEntity.toBuilder.mergeFrom(entity).build()
+
+  private def addOrAppendKeyToEntity[T](options: EntityOptions, fieldName: String, fieldValue: T) = (entity: Entity) => {
+    if (options.keyFields.isEmpty) {
+      addKeyToEntity(options, entity, UUID.randomUUID().toString)
+    } else if (options.keyFields.contains(fieldName)) {
+      val mergedKey = getCurrentKeyOfEntity(entity).fold(fieldValue.toString)(fieldValue + "_" + _)
+      addKeyToEntity(options, entity, mergedKey)
+    } else {
+      entity
+    }
+  }
+
+  private def getCurrentKeyOfEntity(entity: Entity): Option[String] = {
+    if (entity.getKey.getPathCount > 0) Some(entity.getKey.getPath(0).getName) else None
+  }
+
+  private def addKeyToEntity(options: EntityOptions, entity: Entity, key: String) = {
+    val keyBuilder = makeKey(options.kind, key)
+    if (options.namespace != null) {
+      keyBuilder.getPartitionIdBuilder.setNamespaceId(options.namespace)
+    }
+    entity.toBuilder.setKey(keyBuilder.build()).build()
   }
 }
