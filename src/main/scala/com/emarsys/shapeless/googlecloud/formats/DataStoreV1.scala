@@ -7,30 +7,36 @@ import com.google.datastore.v1.client.DatastoreHelper._
 import org.joda.time.{DateTime, DateTimeZone}
 import shapeless.{::, HList, HNil, LabelledGeneric, Lazy, Typeable, Witness}
 import shapeless.labelled._
+import scala.util.Try
 
 object DataStoreV1 {
 
   implicit val intEntityValue = new EntityValueV1[Int] {
+    override val default = 0
     override def toValue(i: Int): Value = makeValue(i.toLong).build()
     override def fromValue(v: Value): Int = v.getIntegerValue.toInt
   }
 
   implicit val stringEntityValue = new EntityValueV1[String] {
+    override val default = ""
     override def toValue(s: String): Value = makeValue(s).build()
     override def fromValue(v: Value): String = v.getStringValue
   }
 
   implicit val doubleEntityValue = new EntityValueV1[Double] {
+    override val default = 0d
     override def toValue(d: Double): Value = makeValue(d).build()
     override def fromValue(v: Value): Double = v.getDoubleValue
   }
 
   implicit val booleanEntityValue = new EntityValueV1[Boolean] {
+    override val default = false
     override def toValue(t: Boolean): Value = makeValue(t).build()
     override def fromValue(v: Value): Boolean = v.getBooleanValue
   }
 
  implicit val DatePrimitive = new EntityValueV1[DateTime] {
+   override val default = DateTime.now
    def toValue(dateTime: DateTime) = {
      makeValue(dateTime.toDateTime(DateTimeZone.UTC).getMillis * 10).build()
    }
@@ -43,7 +49,8 @@ object DataStoreV1 {
  }
 
   implicit def optionEntityValue[T](implicit innerValue: EntityValueV1[T]) = new EntityValueV1[Option[T]] {
-      override def toValue(ot: Option[T]) = {
+    override val default = None
+    override def toValue(ot: Option[T]) = {
         ot match {
           case Some(x) => innerValue.toValue(x)
           case None    => null 
@@ -83,8 +90,8 @@ object DataStoreV1 {
 
       override def parseEntity(e: Entity): FieldType[Key, V] :: Tail = {
         val key = witness.value.name
-        val value: Value = e.getProperties.get(key)
-        val head: V = storeHead.value.fromValue(value)
+        val value: Try[Value] = Try(e.getProperties.get(key))
+        val head: V = value.map(v => storeHead.value.fromValue(v)).getOrElse(storeHead.value.default)
         field[Key](head) :: storeRemaining.value.parseEntity(e)
       }
     }

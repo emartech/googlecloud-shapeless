@@ -84,6 +84,8 @@ class DataStoreFormatTest extends WordSpec with Matchers {
         val entity: Entity = entityBuilder.build()
         entity.parseTo[TestInt] shouldBe TestInt(1)
       }
+
+
     }
 
     "created and then parsed to a case class" should {
@@ -92,6 +94,13 @@ class DataStoreFormatTest extends WordSpec with Matchers {
         val event = TestStringIntDouble("simple", 1, 0.456789)
         val entity = event.toEntity("project-id", "namespace", "kind")
         entity.parseTo[TestStringIntDouble] shouldBe event
+      }
+
+      "be parsable partially to case class with default values" in {
+        val entityBuilder = Entity.builder(key)
+        entityBuilder.set("s", "stringy")
+        val entity: Entity = entityBuilder.build()
+        entity.parseTo[TestStringIntDouble] shouldBe TestStringIntDouble("stringy", 0, 0.0)
       }
 
     }
