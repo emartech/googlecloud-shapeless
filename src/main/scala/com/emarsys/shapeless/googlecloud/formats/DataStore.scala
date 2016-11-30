@@ -41,7 +41,7 @@ object DataStore {
 
   implicit val DatePrimitive = new EntityValue[DateTime] {
     override type ResultType = Long
-    override val default = DateTime.now
+    override val default = new DateTime(0)
     def toValue(dateTime: DateTime): Value[Long] = {
       LongValue.builder(dateTime.toDateTime(DateTimeZone.UTC).getMillis * 10).build().asInstanceOf[Value[Long]]
     }

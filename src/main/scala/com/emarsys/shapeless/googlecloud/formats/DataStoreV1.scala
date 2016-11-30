@@ -36,7 +36,7 @@ object DataStoreV1 {
   }
 
  implicit val DatePrimitive = new EntityValueV1[DateTime] {
-   override val default = DateTime.now
+   override val default = new DateTime(0)
    def toValue(dateTime: DateTime) = {
      makeValue(dateTime.toDateTime(DateTimeZone.UTC).getMillis * 10).build()
    }
