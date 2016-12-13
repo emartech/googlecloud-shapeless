@@ -20,34 +20,22 @@ object DataStore {
 
   implicit val stringEntityValue = new EntityValue[String] {
     override type ResultType = String
-<<<<<<< HEAD
-    override def toValue(s: String): Value[String] = StringValue.builder(s).build().asInstanceOf[Value[String]]
-=======
     override val default = ""
     override def toValue(s: String): Value[String]   = StringValue.builder(s).build().asInstanceOf[Value[String]]
->>>>>>> 63509b7352e236eddf02a5f3e8c356feb298f6e6
     override def fromValue(v: Value[String]): String = v.get
   }
 
   implicit val doubleEntityValue = new EntityValue[Double] {
     override type ResultType = Double
-<<<<<<< HEAD
     override def toValue(d: Double): Value[Double] = DoubleValue.builder(d).build().asInstanceOf[Value[Double]]
-=======
     override val default = 0d
-    override def toValue(d: Double): Value[Double]   = DoubleValue.builder(d).build().asInstanceOf[Value[Double]]
->>>>>>> 63509b7352e236eddf02a5f3e8c356feb298f6e6
     override def fromValue(v: Value[Double]): Double = v.get
   }
 
   implicit val booleanEntityValue = new EntityValue[Boolean] {
     override type ResultType = Boolean
-<<<<<<< HEAD
     override def toValue(t: Boolean): Value[Boolean] = BooleanValue.builder(t).build().asInstanceOf[Value[Boolean]]
-=======
     override val default = false
-    override def toValue(t: Boolean): Value[Boolean]   = BooleanValue.builder(t).build().asInstanceOf[Value[Boolean]]
->>>>>>> 63509b7352e236eddf02a5f3e8c356feb298f6e6
     override def fromValue(v: Value[Boolean]): Boolean = v.get
   }
 
@@ -92,20 +80,13 @@ object DataStore {
         buildEntity(EntityOptions(projectId, namespace, kind), headLabel, headValue, rest)
       }
 
-<<<<<<< HEAD
+
       override def parseEntity(e: Entity): FieldType[KeyType, V] :: Tail = {
         val key = witness.value.name
-        val value: Value[storeHead.value.ResultType] = e.getValue(key)
-        val head: V = storeHead.value.fromValue(value)
+        val head: V =
+          Try(storeHead.value.fromValue(e.getValue(key))).getOrElse(storeHead.value.default)
+          
         field[KeyType](head) :: storeRemaining.value.parseEntity(e)
-=======
-      override def parseEntity(e: Entity): FieldType[Key, V] :: Tail = {
-        val key                                      = witness.value.name
-        val head: V                               =
-           Try(storeHead.value.fromValue(e.getValue(key)))
-          .getOrElse(storeHead.value.default)
-        field[Key](head) :: storeRemaining.value.parseEntity(e)
->>>>>>> 63509b7352e236eddf02a5f3e8c356feb298f6e6
       }
     }
   }
