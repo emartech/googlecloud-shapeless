@@ -24,6 +24,7 @@ package object formats {
   }
 
   trait EntityValueV1[T] {
+    val default : T
     def toValue(t: T): ValueV1
     def fromValue(v: ValueV1): T
   }
@@ -35,6 +36,7 @@ package object formats {
 
   trait EntityValue[T] {
     type ResultType
+    val default : T
     def toValue(t: T): Value[ResultType]
     def fromValue(v: Value[ResultType]): T
   }

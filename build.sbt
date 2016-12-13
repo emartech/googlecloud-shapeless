@@ -2,7 +2,7 @@ name := "googlecloud-shapeless"
 
 organization := "com.emarsys"
 
-version := "0.0.1.5"
+version := "0.0.1.7"
 
 scalaVersion := "2.11.8"
 
