@@ -1,6 +1,6 @@
 package com.emarsys.shapeless.googlecloud.formats
 
-import com.google.cloud.datastore.{BooleanValue, _}
+import com.google.cloud.datastore._
 import org.joda.time.{DateTime, DateTimeZone}
 import shapeless.labelled._
 import shapeless.{::, HList, HNil, LabelledGeneric, Lazy, Typeable, Witness}
@@ -13,24 +13,24 @@ object DataStore {
   implicit val intEntityValue = new EntityValue[Int] {
     override type ResultType = Long
     override def toValue(i: Int): Value[Long] = LongValue.builder(i.toLong).build().asInstanceOf[Value[Long]]
-    override def fromValue(v: Value[Long])    = v.get.toInt
+    override def fromValue(v: Value[Long]) = v.get.toInt
   }
 
   implicit val stringEntityValue = new EntityValue[String] {
     override type ResultType = String
-    override def toValue(s: String): Value[String]   = StringValue.builder(s).build().asInstanceOf[Value[String]]
+    override def toValue(s: String): Value[String] = StringValue.builder(s).build().asInstanceOf[Value[String]]
     override def fromValue(v: Value[String]): String = v.get
   }
 
   implicit val doubleEntityValue = new EntityValue[Double] {
     override type ResultType = Double
-    override def toValue(d: Double): Value[Double]   = DoubleValue.builder(d).build().asInstanceOf[Value[Double]]
+    override def toValue(d: Double): Value[Double] = DoubleValue.builder(d).build().asInstanceOf[Value[Double]]
     override def fromValue(v: Value[Double]): Double = v.get
   }
 
   implicit val booleanEntityValue = new EntityValue[Boolean] {
     override type ResultType = Boolean
-    override def toValue(t: Boolean): Value[Boolean]   = BooleanValue.builder(t).build().asInstanceOf[Value[Boolean]]
+    override def toValue(t: Boolean): Value[Boolean] = BooleanValue.builder(t).build().asInstanceOf[Value[Boolean]]
     override def fromValue(v: Value[Boolean]): Boolean = v.get
   }
 
@@ -41,7 +41,7 @@ object DataStore {
     }
 
     def fromValue(v: Value[Long]) = {
-      val timestampPb  = v.get
+      val timestampPb = v.get
       val milliSeconds = timestampPb / 10
       new org.joda.time.DateTime(milliSeconds, DateTimeZone.UTC)
     }
@@ -55,34 +55,38 @@ object DataStore {
     override def parseEntity(e: Entity): HNil = HNil
   }
 
-  implicit def hListStorable[Key <: Symbol, V, Tail <: HList](
-      implicit witness: Witness.Aux[Key],
-      storeHead: Lazy[EntityValue[V]],
-      storeRemaining: Lazy[DataStoreFormat[Tail]]): DataStoreFormat[FieldType[Key, V] :: Tail] = {
+  implicit def hListStorable[KeyType <: Symbol, V, Tail <: HList](
+    implicit
+    witness: Witness.Aux[KeyType],
+    storeHead: Lazy[EntityValue[V]],
+    storeRemaining: Lazy[DataStoreFormat[Tail]]
+  ): DataStoreFormat[FieldType[KeyType, V] :: Tail] = {
 
-    new DataStoreFormat[FieldType[Key, V] :: Tail] {
+    new DataStoreFormat[FieldType[KeyType, V] :: Tail] {
 
       override def toEntity(projectId: String, namespace: String, kind: String)(
-          t: FieldType[Key, V] :: Tail): Entity = {
-        val rest      = storeRemaining.value.toEntity(projectId, namespace, kind)(t.tail)
+        t: FieldType[KeyType, V] :: Tail
+      ): Entity = {
+        val rest = storeRemaining.value.toEntity(projectId, namespace, kind)(t.tail)
         val headLabel = witness.value.name
         val headValue = storeHead.value.toValue(t.head)
 
         buildEntity(EntityOptions(projectId, namespace, kind), headLabel, headValue, rest)
       }
 
-      override def parseEntity(e: Entity): FieldType[Key, V] :: Tail = {
-        val key                                      = witness.value.name
+      override def parseEntity(e: Entity): FieldType[KeyType, V] :: Tail = {
+        val key = witness.value.name
         val value: Value[storeHead.value.ResultType] = e.getValue(key)
-        val head: V                                  = storeHead.value.fromValue(value)
-        field[Key](head) :: storeRemaining.value.parseEntity(e)
+        val head: V = storeHead.value.fromValue(value)
+        field[KeyType](head) :: storeRemaining.value.parseEntity(e)
       }
     }
   }
 
-  implicit def dataStoreFamilyFormat[T, Repr](implicit gen: LabelledGeneric.Aux[T, Repr],
-                                              sg: Lazy[DataStoreFormat[Repr]],
-                                              tpe: Typeable[T]): DataStoreFormat[T] = new DataStoreFormat[T] {
+  implicit def dataStoreFamilyFormat[T, Repr](implicit
+    gen: LabelledGeneric.Aux[T, Repr],
+    sg: Lazy[DataStoreFormat[Repr]],
+    tpe: Typeable[T]): DataStoreFormat[T] = new DataStoreFormat[T] {
 
     override def toEntity(projectId: String, namespace: String, kind: String)(t: T) = {
       sg.value.toEntity(projectId: String, namespace, kind)(gen.to(t))
